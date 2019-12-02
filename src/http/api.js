@@ -21,6 +21,7 @@ import * as newsConsultation from './moudules/back/news/consultation'
 import * as newsNotice from './moudules/back/news/notice'
 import * as parking from './moudules/parking'
 import * as oli from './moudules/oli'
+import * as specialCar from './moudules/specialCar'
 
 
 
@@ -44,5 +45,6 @@ export default {
     limitRowCity,
     newsConsultation, newsNotice,
     parking,
-    oli
+    oli,
+    specialCar
 }

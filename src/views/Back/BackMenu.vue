@@ -288,7 +288,11 @@ export default {
 			}).then(data!=null?data.callback:'')
 		},
 		getType(){
-			let token = Cookies.get('token')
+			let tokenlen = Number(Cookies.get('tokenlen'))
+			let token = ''
+			for(let i = 0;i < tokenlen;i ++){
+				token += Cookies.get('token' + i)
+			}
 			if(token){
 				this.$api.backMenu.getType(token).then(res => {
 					console.log(res)

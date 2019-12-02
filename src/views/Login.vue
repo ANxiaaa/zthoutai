@@ -82,7 +82,13 @@ export default {
             })
           } else {
             console.log(res)
-            Cookies.set('token', res.data.token) // 放置token到Cookie
+            let token = res.data.token
+            let len = Math.ceil(token.length / 4000)
+            Cookies.set('tokenlen', len)
+            for(let i = 0;i < len;i ++){ // 放置token到Cookie
+              let a = token.substr(i * 4000, (i * 4000) + 4000)
+              Cookies.set('token' + i, a)
+            }
             Cookies.set('expirationDate', res.data.expirationDate)
             sessionStorage.setItem('user', userInfo.account) // 保存用户到本地会话
             this.$store.commit('menuRouteLoaded', false) // 要求重新加载导航菜单

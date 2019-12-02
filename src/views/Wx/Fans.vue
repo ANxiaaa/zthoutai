@@ -58,14 +58,12 @@
 import axios from 'axios'
 import KtButton from "@/views/Core/KtButton"
 import { hasPermission } from '@/permission/index.js'
-import KtTable from "@/views/Core/KtTable"
 import { Message } from 'element-ui'
 import { format } from "@/utils/datetime"
 import filterTool from "@/components/filterTool"
 export default {
 	components:{
         KtButton,
-        KtTable,
         filterTool
 	},
 	data() {

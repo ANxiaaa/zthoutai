@@ -285,4 +285,8 @@ export default {
 >>> .el-table__row--level-3{
   background: #f3efff;
 }
+>>> .hover-row{
+  height: 60px;
+  background-color: #bbb !important;
+}
 </style>

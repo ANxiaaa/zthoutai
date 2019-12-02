@@ -3,6 +3,8 @@ import config from './config';
 import Cookies from "js-cookie";
 import router from '@/router'
 import { Message } from 'element-ui'
+
+import refreshToken from './refreshToken'
 // 使用vuex做全局loading时使用
 // import store from '@/store'
 export default function $axios(options) {
@@ -17,7 +19,11 @@ export default function $axios(options) {
     // request 拦截器
     instance.interceptors.request.use(
       config => {
-        let token = Cookies.get('token')
+        let tokenlen = Number(Cookies.get('tokenlen'))
+        let token = ''
+        for(let i = 0;i < tokenlen;i ++){
+          token += Cookies.get('token' + i)
+        }
         let expirationDate = Cookies.get('expirationDate')
         let user = sessionStorage.getItem('user')
         let nowDate = new Date().getTime()
@@ -28,18 +34,20 @@ export default function $axios(options) {
         //1.取出cookie中的token过期时间
         //2.使用当前时间和token时间进行比对
         //3.如果token过期时间达到设定值,请求后台获取新的token和过期时间,存入cookie中替换原有的数据, 否则直接请求
-        if(expirationDate - nowDate <= 0 && user){
+        if(expirationDate - nowDate < 0){
           Message.error('登录状态超时, 请退出重新登录!')
           sessionStorage.removeItem('user')
           router.push('/login')
-        }else if(expirationDate - nowDate <= 300000){
-          axios.get('/apis/security/refreshToken',{
-            headers: { token }
-          }).then(res=>{
-            token = res.data.data.refreshToken
-            Cookies.set('token', token) // 放置token到Cookie
-            Cookies.set('expirationDate', res.data.data.expirationDate)
-          })
+        }else if(expirationDate - nowDate <= 300000 && user){
+          let res = refreshToken(token)
+          token = res.data.refreshToken
+          let len = Math.ceil(token.length / 4000)
+          Cookies.set('tokenlen', len)
+          for(let i = 0;i < len;i ++){ // 放置token到Cookie
+            let a = token.substr(i * 4000, (i * 4000) + 4000)
+            Cookies.set('token' + i, a)
+          }
+          Cookies.set('expirationDate', res.data.expirationDate)
         }
         // 2. 带上token
         if (token) {
