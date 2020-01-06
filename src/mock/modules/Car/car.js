@@ -673,18 +673,18 @@ let userInfoData = {
 }
 userInfoData.content.forEach((i,index) => {
     i.id = index
-});
-export function userInfoData() {
-    return {
-        url: 'carList/userInfoData',
-        type: 'get',
-        data: {
-            "code": 200,
-            "msg": null,
-            data: userInfoData
-        }
-    }
-}
+})
+// export function userInfoData() {
+//     return {
+//         url: 'carList/userInfoData',
+//         type: 'get',
+//         data: {
+//             "code": 200,
+//             "msg": null,
+//             data: userInfoData
+//         }
+//     }
+// }
 // 按用户id查用户所有信息
 let userData = {
     
@@ -699,14 +699,14 @@ let userData = {
     defaultCarInfoId: 123,
     source: '微信'
 }
-export function userData() {
-    return {
-        url: 'carList/userData',
-        type: 'get',
-        data: {
-            "code": 200,
-            "msg": null,
-            data: userData
-        }
-    }
-}
+// export function userData() {
+//     return {
+//         url: 'carList/userData',
+//         type: 'get',
+//         data: {
+//             "code": 200,
+//             "msg": null,
+//             data: userData
+//         }
+//     }
+// }

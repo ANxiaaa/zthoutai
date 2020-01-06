@@ -1,5 +1,5 @@
 <template>
-  <el-button :size="size" :type="type" :icon="icon"
+  <el-button :size="size" :type="type" :icon="icon" @mouseenter.native="mouseenter" @mouseleave.native="mouseleave"
     :loading="loading" @click="handleClick" v-show="hasPerms(perms)">
     {{label}}
   </el-button>
@@ -51,6 +51,12 @@ export default {
     hasPerms: function (perms) {
       // 根据权限标识和外部指示状态进行权限判断
       return hasPermission(perms) & !this.disabled
+    },
+    mouseenter(){
+      this.$emit('mouseenter', {})
+    },
+    mouseleave(){
+      this.$emit('mouseleave', {})
     }
   },
   mounted() {

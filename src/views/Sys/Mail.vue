@@ -41,6 +41,8 @@
 			</el-form-item>
 			<el-form-item label="内容" prop="content"  >
 				<div class="edit_container">
+					<input style="position: absolute;top: 8px;right: 8px;width: 80px;height: 32px;z-index: 2;opacity: 0;" title="" @change="fwbImg" type="file" accept="image/jpeg">
+					<el-button style="position: absolute;top: 8px;right: 8px;">添加图片</el-button>
 					<quill-editor v-model="dataForm.content" class="editer" :options="editorOption"> </quill-editor>
 				</div>
 			</el-form-item>
@@ -52,11 +54,6 @@
 	</el-dialog>
 	</div>
 </template>
-<style>
-.quill-editor {
-	height: 400px;
-}
-</style>
 <script>
 import filterTool from "@/components/filterTool"
 import PopupTreeInput from "@/components/PopupTreeInput"
@@ -64,18 +61,15 @@ import TableColumnFilterDialog from "@/views/Core/TableColumnFilterDialog"
 import KtTable from "@/views/Core/KtTable"
 import KtButton from "@/views/Core/KtButton"
 import { format } from "@/utils/datetime"
-import { quillEditor } from 'vue-quill-editor' //调用编辑器
 import { Message } from 'element-ui'
-import 'quill/dist/quill.core.css'
-import 'quill/dist/quill.snow.css'
-import 'quill/dist/quill.bubble.css'
+import { upLoaderImg } from "@/http/upImg"
+import { baseUrl } from '@/utils/global'
 export default {
 	components:{
-			PopupTreeInput,
-			KtTable,
-			KtButton,
-			quillEditor,
-			filterTool
+		PopupTreeInput,
+		KtTable,
+		KtButton,
+		filterTool
 	},
 	data() {
 		return {
@@ -86,13 +80,23 @@ export default {
 			editorOption: {
 				//定义富文本展示内容
 				modules:{
-					toolbar:[
-						[
-						{ 'header': 1 }, { 'header': 2 },'bold', 'italic', 'underline', 'strike',{ 'script': 'sub'},
-							{ 'script': 'super' },{ 'indent': '-1'}, { 'indent': '+1' },{ 'color': [] }, { 'background': [] },{ 'align': [] },
-							{ 'size': ['small', false, 'large', 'huge'] }
-						]
-					]
+					toolbar:[[
+						{ 'header': 1 },
+						{ 'header': 2 },
+						'bold',
+						'italic',
+						'underline',
+						'strike',
+						{ 'script': 'sub'},
+						{ 'script': 'super' },
+						{ 'indent': '-1'},
+						{ 'indent': '+1' },
+						{ 'color': [] },
+						{ 'background': [] },
+						{ 'align': [] },
+						{ 'size': ['small', false, 'large', 'huge'] }
+					]],
+					imageResize: {}
 				}
 			},
 			columns: [],
@@ -123,6 +127,18 @@ export default {
 		}
 	},
 	methods: {
+		async fwbImg(a){
+			console.log(a.target.files)
+			console.log((a.target.files[0].size / 1024) / 1024)
+			if((a.target.files[0].size / 1024) / 1024 < 5){
+				await upLoaderImg(a.target.files[0]).then(res=>{
+					console.log(res)
+					this.dataForm.content += `<img src="${baseUrl}${res.data.data.filePath}"/>`
+				})
+			}else{
+				Message.error('最大上传 5M 图片')
+			}
+		},
 		// 获取分页数据
 		findPage: function (data) {
 			if(data !== null) {
@@ -168,11 +184,13 @@ export default {
 		},
 		// 编辑
 		submitForm: function () {
+			console.log(this.dataForm.content)
 			this.$refs.dataForm.validate((valid) => {
 				if (valid) {
 					this.$confirm('确认提交吗？', '提示', {}).then(() => {
 						this.editLoading = true
 						let params = Object.assign({}, this.dataForm)
+						console.log(params)
 						this.$api.sysMail.save(params).then((res) => {
 							if(res.code == 200) {
 								this.$message({ message: '操作成功', type: 'success' })
@@ -236,5 +254,7 @@ export default {
 </script>
 
 <style scoped>
-
+.quill-editor >>> .ql-container{
+	height: 400px;
+}
 </style>

@@ -24,8 +24,8 @@ fnCreate(menu, openMock)
 fnCreate(dict, openMock)
 fnCreate(log, openMock)
 fnCreate(car, openMock)
-fnCreate(fans, true)
-fnCreate(sms, true)
+fnCreate(fans, openMock)
+fnCreate(sms, openMock)
 
 
 

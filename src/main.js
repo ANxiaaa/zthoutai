@@ -5,14 +5,27 @@ import api from './http'
 import i18n from './i18n'
 import store from './store'
 import global from '@/utils/global'
+
+// 引入框架
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import 'font-awesome/css/font-awesome.min.css'
 import '@/assets/iconfont/iconfont.css'
 import { runInContext } from 'vm'
 
+//富文本编辑
+import { quillEditor } from 'vue-quill-editor' //调用编辑器
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.snow.css'
+import 'quill/dist/quill.bubble.css'
+import ImageResize from 'quill-image-resize-module' //调节图片大小
+Quill.register('modules/imageResize', ImageResize)
+
+
 Vue.use(ElementUI)
 Vue.use(api)
+Vue.use(quillEditor)
+Vue.component('quillEditor', quillEditor)
 
 Vue.prototype.global = global
 

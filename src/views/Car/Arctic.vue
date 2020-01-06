@@ -3,13 +3,7 @@
         <!--工具栏-->
         <div id="top">
             <div class="toolbar" style="float:left;padding-top:10px;padding-left:15px;">
-                <el-form @submit.native.prevent :inline="true" :model="filters" size="small">
-                    <el-form-item>
-                        <el-input v-model="filters.label" placeholder="名称"></el-input>
-                    </el-form-item>
-                    <el-form-item>
-                        <kt-button icon="fa fa-search" :label="$t('action.search')" perms="car:two:brand:view" type="primary" @click="findPage(null)"/>
-                    </el-form-item>
+                <el-form @submit.native.prevent :inline="true"  size="small">
 					<el-form-item>
 						<kt-button icon="fa fa-plus" :label="$t('action.add')" perms="car:arctic:add" type="primary" @click="handleAdd" />
 					</el-form-item>
@@ -94,9 +88,6 @@ export default {
 	},
 	data() {
 		return {
-            filters: {
-				label: ''
-			},
             tableData: [],
             loading: false,
             fansloading:false,
@@ -125,8 +116,17 @@ export default {
       	},
         // 获取页面数据
         findPage(val){
+			if(val === null){
+				if(Object.keys(this.cur).length == 0){
+					return
+				}
+				if(Object.keys(this.cur).length > 0){
+					val = this.cur
+				}else{
+					val = this.tableData[0].list[0]
+				}
+			}
 			console.log(val)
-			val = val || this.cur || this.tableData[0].list[0]
 			let { queryId } = val
 			this.fansloading = true
 			this.$api.car.findCarByParentId(queryId).then(res=>{

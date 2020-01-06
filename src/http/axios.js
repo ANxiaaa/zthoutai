@@ -34,7 +34,7 @@ export default function $axios(options) {
         //1.取出cookie中的token过期时间
         //2.使用当前时间和token时间进行比对
         //3.如果token过期时间达到设定值,请求后台获取新的token和过期时间,存入cookie中替换原有的数据, 否则直接请求
-        if(expirationDate - nowDate < 0){
+        if(expirationDate - nowDate < 0 && user){
           Message.error('登录状态超时, 请退出重新登录!')
           sessionStorage.removeItem('user')
           router.push('/login')
