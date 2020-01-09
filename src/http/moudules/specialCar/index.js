@@ -22,12 +22,12 @@ export const save = data => {
     })
 }
 
-// 删除特价车可用标识
+// 删除特价车
 export const deleteData = id => {
     return axios({
         url: '/back/carSpecialInfo/delete',
         method: 'post',
-        data: { id }
+        params: { id }
     })
 }
 
@@ -45,6 +45,33 @@ export const findById = id => {
     return axios({
         url: '/back/carSpecialInfo/findById',
         method: 'get',
+        params: { id }
+    })
+}
+
+// 审核成功特价车
+export const audit = data => {
+    return axios({
+        url: '/back/carSpecialInfo/audit',
+        method: 'post',
+        data
+    })
+}
+
+// 上架特价车
+export const upper = id => {
+    return axios({
+        url: '/back/carSpecialInfo/upperShelf',
+        method: 'post',
+        params: { id }
+    })
+}
+
+// 下架特价车
+export const lower = id => {
+    return axios({
+        url: '/back/carSpecialInfo/lowerShelf',
+        method: 'post',
         params: { id }
     })
 }
