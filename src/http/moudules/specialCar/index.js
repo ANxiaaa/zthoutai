@@ -22,6 +22,14 @@ export const save = data => {
     })
 }
 
+// 推荐列表
+export const getExtensionEnum = () => {
+    return axios({
+        url: '/back/carSpecialInfo/getExtensionEnum',
+        method: 'get'
+    })
+}
+
 // 删除特价车
 export const deleteData = id => {
     return axios({

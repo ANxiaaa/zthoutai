@@ -55,7 +55,15 @@
             <div v-if="addAndEdit">
                 <el-form :model="dataForm" ref="dataForm" @keyup.enter.native="submitForm()" label-width="80px" :size="size" style="text-align:left;">
                     <el-form-item label="名称" prop="name">
-                        <el-input v-model="dataForm.name" placeholder="名称"></el-input>
+                        <el-col :span="12">
+                            <el-input v-model="dataForm.name" placeholder="名称"></el-input>
+                        </el-col>
+                        <el-col :span="3" style="padding-right: 12px; text-align: right">
+                            <span>推荐</span>
+                        </el-col>
+                        <el-col :span="7">
+                            <el-cascader :key="extKey" clearable :props="extprops" placeholder="推荐" :value="extCur" @change="extChange" :options="ext"></el-cascader>
+                        </el-col>
                     </el-form-item>
                     <el-form-item label="品牌" prop="brand">
                         <el-col :span="6">
@@ -290,14 +298,17 @@ export default {
             two: [],
             three: [],
             four: [],
+            ext: [],
             oneCur: [],
             twoCur: [],
             threeCur: [],
             fourCur: [],
+            extCur: [],
             oneKey: 0,
             twoKey: 0,
             threeKey: 0,
             fourKey: 0,
+            extKey: 0,
             activityTime: [],
             imgListKey: 0,
             baseUrl,
@@ -316,7 +327,11 @@ export default {
             fourprops: {
                 label: 'name',
                 value: 'queryId'
-            }
+            },
+            extprops: {
+                label: 'title',
+                value: 'name'
+            },
         }
 	},
 	methods: {
@@ -540,6 +555,12 @@ export default {
             this.$set(this.dataForm, 'carInfo', a[0])
             console.log(this.fourCur)
         },
+        // 推荐变更
+        extChange(a){
+            this.extCur = [a[0]]
+            // this.$set(this.dataForm, 'carInfo', a[0])
+            console.log(this.extCur)
+        },
         // 时间变更
         changeTime(a){
             console.log(a)
@@ -749,9 +770,13 @@ export default {
 		this.findPage()
         this.initColumns()
         this.$api.car.findAll().then(res=>{
-            ++this.oneKey
+            // ++this.oneKey
             console.log(res)
             this.one = res.data
+        })
+        this.$api.specialCar.getExtensionEnum().then(res=>{
+            console.log(res)
+            this.ext = res.data
         })
     },
     computed:{
