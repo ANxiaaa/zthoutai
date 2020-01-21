@@ -30,11 +30,21 @@ export default {
 ul{
   list-style: none
 }
+.showmoreBtn .moreBtn{
+  display: block;
+}
 .moreBtn{
   overflow: hidden;
   overflow-y: auto;
-  position: fixed;
-  top: 0;left: 0;
+  /* position: fixed;
+  top: 0;left: 0; */
+  display: none;
+  position: absolute;
+  top: 55px;
+  left: 0;
+  right: 0;
+  margin: auto;
+
   max-height: 150px;
   background: #fff;
   width: 80px;

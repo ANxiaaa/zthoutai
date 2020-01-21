@@ -57,6 +57,14 @@ export const findById = id => {
     })
 }
 
+// 查询审核类型
+export const getspecialStatusEnum = () => {
+    return axios({
+        url: '/back/carSpecialInfo/getspecialStatusEnum',
+        method: 'get'
+    })
+}
+
 // 审核成功特价车
 export const audit = data => {
     return axios({

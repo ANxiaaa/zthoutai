@@ -8,6 +8,15 @@
                         <el-input v-model="columnFilters.name.value" placeholder="名称"></el-input>
                     </el-form-item>
                     <el-form-item>
+                        <el-cascader filterable :props="props" placeholder="品牌" :value="searchBrand" @change="searchBrandChange" :options="one"></el-cascader>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-cascader filterable :props="statusprops" placeholder="审核状态" :value="statuCur" @change="statuChange" :options="statusArr"></el-cascader>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-cascader filterable placeholder="是否启用" :value="enableCur" @change="enableChange" :options="enableArr"></el-cascader>
+                    </el-form-item>
+                    <el-form-item>
                         <kt-button icon="fa fa-search" :label="$t('action.search')" perms="car:special:info:view" type="primary" @click="findPage(null)"/>
                     </el-form-item>
                     <el-form-item>
@@ -24,8 +33,9 @@
                     <el-table-column v-for="i in filterColumns" :key="i.id" align="center" :show-overflow-tooltip="i.showOverflowTooltip"
                     :prop="i.prop" :label="i.label" :min-width="i.minWidth" :width="i.width">
                     <template slot-scope="scope">
-                        <img v-if="i.prop === 'img' && scope.row.img" :src="baseUrl + scope.row.img" style="max-height:200px;" class="touxiang" ondragstart="return false"/>
+                        <img v-if="i.prop === 'img' && scope.row.img" :src="baseUrl + scope.row.img" style="max-height:50px;" class="touxiang" ondragstart="return false"/>
                         <span v-else-if="i.prop === 'brand'" v-text="formatBrand(scope.row,scope.column)"></span>
+                        <span v-else-if="i.prop === 'status'" v-text="formatStatus(scope.row,scope.column)"></span>
                         <span v-else-if="i.prop === 'createTime' || i.prop === 'lastEditTime' || i.prop === 'activityEndTime' || i.prop === 'activityStartTime' || i.prop === 'releaseTime'" v-text="dateFormat(scope.row,scope.column)"></span>
                         <span v-else>{{scope.row[i.prop]}}</span>
                     </template>
@@ -36,24 +46,25 @@
                             <kt-button icon="fa fa-edit" label="编辑" perms="car:special:info:view" @click="handleEdit(scope.row)"/>
                             <kt-button label="更多" perms="car:special:info:view" type="primary" @mouseenter="showmore(scope.row)" @mouseleave="hidemore(scope.row)"/>
                             <kt-button icon="fa fa-trash" label="删除" perms="car:special:info:delete" type="danger" @click="handleDelete(scope.row)"/>
+                            <ul @mouseenter="morebtnEnter(scope.row)" @mouseleave="morebtnLeave(scope.row)" ref="moreBtn" class="moreBtn">
+                                <li v-if="scope.row.status == 'SHELF'"><kt-button label="审核" perms="car:special:info:audit" @click="handleAudit"/></li>
+                                <li v-if="scope.row.status == 'TO_AUDITED'"><kt-button label="上架" perms="car:special:info:audit" @click="upper"/></li>
+                                <li v-if="scope.row.status == 'AUDITED'"><kt-button label="下架" perms="car:special:info:audit" @click="lower"/></li>
+                            </ul>
                         </template>
                     </el-table-column>
                 </el-table>
             </div>
             <div id="fenye">
                 <!-- 下边分页器 -->
-                <el-pagination layout="prev, pager, next" @current-change="currentChange" :page-size="pageSize.pageSize" :total="pageSize.totalSize"></el-pagination>
+                <el-pagination layout="prev, pager, next" @current-change="pageCurrentChange" :page-size="pageSize.pageSize" :total="pageSize.totalSize"></el-pagination>
             </div>
         </div>
-        <ul @mouseenter="morebtnEnter" @mouseleave="morebtnLeave" v-show="showMoreBtn" ref="moreBtn" class="moreBtn">
-            <li><kt-button label="审核" perms="car:special:info:audit" @click="handleAudit"/></li>
-            <li><kt-button label="上架" perms="car:special:info:audit" @click="upper"/></li>
-            <li><kt-button label="下架" perms="car:special:info:audit" @click="upper"/></li>
-        </ul>
+        
         <!-- 新增修改界面 -->
         <el-dialog :title="operation" :model="false" :modal-append-to-body="false" :visible.sync="dialogVisible" :close-on-click-modal="false" class="dataFormBox">
             <div v-if="addAndEdit">
-                <el-form :model="dataForm" ref="dataForm" @keyup.enter.native="submitForm()" label-width="80px" :size="size" style="text-align:left;">
+                <el-form :model="dataForm" ref="dataForm" label-width="80px" :size="size" style="text-align:left;">
                     <el-form-item label="名称" prop="name">
                         <el-col :span="12">
                             <el-input v-model="dataForm.name" placeholder="名称"></el-input>
@@ -67,7 +78,7 @@
                     </el-form-item>
                     <el-form-item label="品牌" prop="brand">
                         <el-col :span="6">
-                            <el-cascader :key="oneKey" :props="props" placeholder="品牌" :value="oneCur" @change="oneChange" :options="one"></el-cascader>
+                            <el-cascader filterable :key="oneKey" :props="props" placeholder="品牌" :value="oneCur" @change="oneChange" :options="one"></el-cascader>
                         </el-col>
                         <el-col :span="6">
                             <el-cascader :key="twoKey" :props="props" placeholder="车系" :value="twoCur" @change="twoChange" :options="two"></el-cascader>
@@ -83,14 +94,26 @@
                         <el-input v-model="dataForm.intro" type="textarea" placeholder="车辆信息" :autosize="{minRows: 3, maxRows: 17}"></el-input>
                     </el-form-item>
                     <el-form-item label="车辆售价" prop="showCost">
-                        <el-col :span="10">
-                            <el-input v-model="dataForm.showCost" placeholder="车辆售价"></el-input>
+                        <el-col :span="6">
+                            <el-input @input="showCostChange" v-model="dataForm.showCost" placeholder="车辆售价">
+                                <span slot="suffix" style="margin-right: 15px;">{{suffixCost}}</span>
+                            </el-input>
+                        </el-col>
+                        <el-col :span="3" style="padding-right: 12px; text-align: right">
+                            <span>指导价</span>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-input @input="showCostChange" v-model="carPrice" placeholder="指导价">
+                                <span slot="suffix" style="margin-right: 15px;">{{suffixPrice}}</span>
+                            </el-input>
                         </el-col>
                         <el-col :span="3" style="padding-right: 12px; text-align: right">
                             <span>优惠金额</span>
                         </el-col>
-                        <el-col :span="11">
-                            <el-input v-model="dataForm.discount" placeholder="优惠金额（指导价和销售价格差）"></el-input>
+                        <el-col :span="6">
+                            <el-input disabled v-model="dataForm.discount" placeholder="优惠金额">
+                                <span slot="suffix" style="margin-right: 15px;">{{suffixDiscount}}</span>
+                            </el-input>
                         </el-col>
                     </el-form-item>
                     <el-form-item label="库存" prop="store">
@@ -101,14 +124,11 @@
                             <span>活动时间</span>
                         </el-col>
                         <el-col :span="11">
-                            <el-date-picker
-                                v-model="activityTime"
-                                type="daterange" @change="changeTime"
-                                start-placeholder="开始日期"
-                                end-placeholder="结束日期"
-                                :default-time="['00:00:00', '23:59:59']">
-                            </el-date-picker>
+                            <el-date-picker v-model="activityTime" type="daterange" @change="changeTime" start-placeholder="开始日期" end-placeholder="结束日期" :default-time="['00:00:00', '23:59:59']"></el-date-picker>
                         </el-col>
+                    </el-form-item>
+                    <el-form-item label="标签" prop="tags">
+                        <el-input v-model="dataForm.tags" placeholder="标签"></el-input>
                     </el-form-item>
                     <el-form-item label="属性" prop="specialAttrs">
                         <div v-for="(i, index) in dataForm.specialAttrs" :key="'a' + index">
@@ -136,7 +156,7 @@
                         </div>
                     </el-form-item>
                     <el-form-item label="详情" prop="specialDetail">
-                        <div class="edit_container">
+                        <div style="width: 423px;margin: auto;" class="edit_container">
                             <input style="position: absolute;top: 8px;right: 8px;width: 80px;height: 32px;z-index: 2;opacity: 0;" title="" @change="fwbImg" type="file" accept="image/jpeg">
                             <el-button style="position: absolute;top: 8px;right: 8px;">添加图片</el-button>
                             <quill-editor v-model="dataForm.specialDetail.detail" class="editer" :options="editorOption"> </quill-editor>
@@ -157,11 +177,13 @@
                 <div class="audit">
                     <div class="top">
                         <p><b>名称: </b><span>{{dataForm.name}}</span></p>
-                        <p><b>品牌: </b><span>{{showBrand}}</span></p>
-                        <p><b>车辆信息: </b><span>{{dataForm.carInfo}}</span></p>
-                        <p><b>车辆售价: </b><span>{{dataForm.showCost}}</span></p>
-                        <p><b>优惠金额: </b><span>{{dataForm.discount}}</span></p>
                         <p><b>库存: </b><span>{{dataForm.store}}</span></p>
+                        <p><b>品牌: </b><span>{{showBrand}}</span></p>
+                        <p><b>型号: </b><span>{{showCarInfo}}</span></p>
+                        <p><b>推广: </b><span>{{showExtension}}</span></p>
+                        <p><b>指导价: </b><span>{{dataForm.price}}元</span></p>
+                        <p><b>车辆售价: </b><span>{{dataForm.showCost}}元</span></p>
+                        <p><b>优惠金额: </b><span>{{dataForm.discount}}元</span></p>
                         <p><b>活动开始时间: </b><span>{{dateFormat(dataForm.activityStartTime)}}</span></p>
                         <p><b>活动结束时间: </b><span>{{dateFormat(dataForm.activityEndTime)}}</span></p>
                         <p><b>标签: </b><span>{{dataForm.tags}}</span></p>
@@ -178,7 +200,7 @@
                     <div class="bottom">
                         <div class="sDetail">
                             <b>详情: </b>
-                            <div class="edit_container">
+                            <div style="width: 423px;margin: auto;" class="edit_container">
                                 <quill-editor v-model="dataForm.specialDetail.detail" class="editer" disabled :options="editorOption"></quill-editor>
                             </div>
                         </div>
@@ -228,23 +250,54 @@ export default {
 						'italic',
 						'underline',
 						'strike',
-						{ 'script': 'sub'},
-						{ 'script': 'super' },
-						{ 'indent': '-1'},
-						{ 'indent': '+1' },
 						{ 'color': [] },
 						{ 'background': [] },
 						{ 'align': [] },
-						{ 'size': ['small', false, 'large', 'huge'] }
 					]],
-					imageResize: {}
+					// imageResize: {}
 				}
-			},
+            },
+            statusArr: [{
+                name: 'TO_AUDITED',
+                title: '未上架'
+            },{
+                name: 'SHELF',
+                title: '未审核'
+            },{
+                name: 'LOWER_SHELF',
+                title: '已下架'
+            },{
+                name: 'AUDITED',
+                title: '已审核'
+            },{
+                name: 'BACK',
+                title: '已退回'
+            }],
+            enableArr: [{
+                name: '启用',
+                value: true
+            },{
+                name: '未启用',
+                value: false
+            }],
             size: 'small',
             columnFilters: {
 				name: {
+                    name: "name",
 					value: ''
-				}
+				},
+				brand: {
+                    name: "brand",
+					value: 0
+				},
+				status: {
+                    name: "status",
+					value: ''
+				},
+				enable: {
+                    name: "enable",
+					value: true
+				},
 			},
             tableData: [],
             fansloading:false,
@@ -282,6 +335,8 @@ export default {
                     "detail": "",
                     "infoId": 0
                 },
+                "price": 0,
+                "extension": undefined,
                 "specialImgs": [],
                 "status": "",
                 "store": 0,
@@ -291,6 +346,8 @@ export default {
             },
             operation: '',
             addAndEdit: false,
+            carPrice: '',
+            showCarInfo: '',
             curRow: {},
             dialogVisible: false,
             imgMax: 5,
@@ -309,13 +366,15 @@ export default {
             threeKey: 0,
             fourKey: 0,
             extKey: 0,
+            timeKey: 0,
             activityTime: [],
             imgListKey: 0,
             baseUrl,
             fileList: [],
             fileBeans: [],
             showMoreBtn: false,
-            moreBtnTime: null,
+            showExtension: '',
+            moreBtnTime: {},
             props: {
                 label: 'name',
                 value: 'id'
@@ -332,6 +391,16 @@ export default {
                 label: 'title',
                 value: 'name'
             },
+            statusprops: {
+                label: 'title',
+                value: 'name'
+            },
+            suffixCost: '',
+            suffixDiscount: '',
+            suffixPrice: '',
+            searchBrand: [],
+            statuCur: [],
+            enableCur: []
         }
 	},
 	methods: {
@@ -377,9 +446,11 @@ export default {
                     "detail": "",
                     "infoId": 0
                 },
+                "price": 0,
+                "extension": undefined,
                 "specialImgs": [],
                 "status": "",
-                "store": 0,
+                "store": 1,
                 "tags": "",
                 "twoBrand": 0,
                 "vehicleType": 0
@@ -392,9 +463,16 @@ export default {
             if(typeof row == 'string'){
                 return format(row)
             }else{
-                return format(row[column.property])
+                if(column){
+                    return format(row[column.property])
+                }
             }
       	},
+        // 搜索栏品牌变更
+        searchBrandChange(a){
+            this.columnFilters.brand.value = a[0]
+            console.log(this.columnFilters)
+        },
         // 通用重置
         reshData(){
             ++this.oneKey
@@ -402,18 +480,26 @@ export default {
             ++this.threeKey
             ++this.imgListKey
             ++this.fourKey
+            ++this.extKey
+            ++this.timeKey
             this.oneCur = []
             this.twoCur = []
             this.threeCur = []
             this.fourCur = []
+            this.extCur = []
+            this.activityTime = []
             this.fileBeans = []
             this.fileList = []
+            this.carPrice = ''
         },
         // 编辑
         handleEdit(data){
             console.log(data)
             this.$api.specialCar.findById(data.id).then(res=>{
                 this.reshData()
+                if(res.data.activityEndTime){
+                    this.activityTime = [res.data.activityStartTime, res.data.activityEndTime]
+                }
                 this.oneCur = [res.data.brand]
                 this.$api.car.findTypeByParentId(res.data.brand).then(twoRes=>{
                     this.two = twoRes.data
@@ -423,6 +509,13 @@ export default {
                     this.$api.car.findCarByParentId(res.data.vehicleType).then(fourRes=>{
                         this.four = fourRes.data.list
                         this.fourCur = [res.data.carInfo]
+                        this.four.forEach(i => {
+                            if(i.queryId == res.data.carInfo){
+                                console.log(i)
+                                this.carPrice = Math.round(Number(i.price.slice(0,-1)) * 10000)
+                                this.suffixPrice = i.price
+                            }
+                        })
                     })
                 })
                 this.addAndEdit = true;
@@ -430,6 +523,14 @@ export default {
                 this.dialogVisible = true
                 this.operation = '编辑'
                 this.dataForm = Object.assign(this.dataForm, res.data)
+                if(res.data.extension){
+                    this.ext.forEach(i=>{
+                        if(i.title == res.data.extension.title){
+                            this.extCur = [i.name]
+                            this.$set(this.dataForm, 'extension', i.name)
+                        }
+                    })
+                }
                 res.data.specialImgs.forEach(i=>{
                     this.fileList.push({
                         url: baseUrl + i.img,
@@ -464,15 +565,11 @@ export default {
 			})
         },
         //获取页数的数据
-        currentChange(a){
+        pageCurrentChange(a){
             console.log(a)
-            let data = {
-                parentID: this.findPageData.parentID,
-                pageNum: a,
-                pageSize: this.findPageData.pageSize
-            }
+            this.$set(this.findPageData, 'pageNum', a)
             this.fansloading = true
-            this.findPage(data)
+            this.findPage(this.findPageData)
         },
         // 格式化品牌
         formatBrand(row){
@@ -483,25 +580,35 @@ export default {
                 }
             }
         },
+        // 格式化状态显示
+        formatStatus(row){
+            let res = '';
+            this.statusArr.forEach(i=>{
+                if(row.status == i.name)
+                    res = i.title
+            })
+            return res
+        },
         // 初始化列表头
 		initColumns: function () {
 			this.columns = [
 				{prop:"id", label:"ID", width:60, minWidth: 0},
-				{prop:"name", label:"名称", minWidth:100},
+				{prop:"name", label:"名称", minWidth:170},
 				{prop:"brand", label:"品牌", minWidth:170},
 				// {prop:"twoBrand", label:"二级品牌", minWidth:60},
 				// {prop:"vehicleType", label:"车型", minWidth:100, width:100},
 				// {prop:"carInfo", label:"车辆信息", minWidth:140},
                 // {prop:"intro", label:"简介", minWidth:130},
                 {prop:"img", label:"主图片", minWidth:250},
-                {prop:"showCost", label:"车辆售价", minWidth:130},
-                {prop:"discount", label:"优惠金额（指导价和销售价格差）", minWidth:180},
+                {prop:"showCost", label:"车辆售价(元)", minWidth:130},
+                {prop:"discount", label:"优惠金额(元)", minWidth:130},
+				{prop:"price", label:"指导价(元)", minWidth:130},
                 {prop:"store", label:"库存", minWidth:70},
-                {prop:"tags", label:"标签", minWidth:130},
+                // {prop:"tags", label:"标签", minWidth:130},
                 {prop:"status", label:"状态", minWidth:130},
-                {prop:"releaseTime", label:"发布时间", minWidth:180},
-                {prop:"activityStartTime", label:"活动开始时间", minWidth:180},
-                {prop:"activityEndTime", label:"活动结束时间", minWidth:180},
+                // {prop:"releaseTime", label:"发布时间", minWidth:180},
+                // {prop:"activityStartTime", label:"活动开始时间", minWidth:180},
+                // {prop:"activityEndTime", label:"活动结束时间", minWidth:180},
                 {prop:"creator", label:"创建人", minWidth:130},
                 // {prop:"createTime", label:"创建时间", minWidth:180},
                 // {prop:"lastEditTime", label:"最后修改时间", minWidth:180},
@@ -528,6 +635,11 @@ export default {
         oneChange(a){
             this.$set(this.dataForm, 'brand', a[0])
             this.oneCur = [a[0]]
+            this.$set(this.dataForm, 'discount', 0)
+            this.carPrice = ''
+            this.twoCur = []
+            this.threeCur = []
+            this.fourCur = []
             this.$api.car.findTypeByParentId(a[0]).then(res=>{
                 console.log(res)
                 this.two = res.data
@@ -536,6 +648,10 @@ export default {
         // 车系变更
         twoChange(a){
             this.twoCur = [a[0]]
+            this.threeCur = []
+            this.fourCur = []
+            this.carPrice = ''
+            this.$set(this.dataForm, 'discount', 0)
             let three = this.two.filter(i => i.id == a[0])
             console.log(three)
             this.three = three[0].list
@@ -544,6 +660,9 @@ export default {
         // 车型变更
         threeChange(a){
             this.threeCur = [a[0]]
+            this.fourCur = []
+            this.carPrice = ''
+            this.$set(this.dataForm, 'discount', 0)
             this.$set(this.dataForm, 'vehicleType', a[0])
             this.$api.car.findCarByParentId(a[0]).then(res=>{
                 this.four = res.data.list
@@ -551,41 +670,84 @@ export default {
         },
         // 车辆信息变更
         fourChange(a){
-            this.fourCur = [a[0]]
-            this.$set(this.dataForm, 'carInfo', a[0])
+            this.four.forEach(i => {
+                if(i.queryId == a[0]){
+                    console.log(i)
+                    if(i.price == '暂无' || i.price == null){
+                        this.carPrice = 0
+                    }else{
+                        this.carPrice = Math.round(Number(i.price.slice(0,-1)) * 10000)
+                    }
+                    // this.suffixPrice = i.price
+                    this.fourCur = [a[0]]
+                    this.$set(this.dataForm, 'carInfo', a[0])
+                    this.showCostChange()
+                }
+            })
             console.log(this.fourCur)
+        },
+        // 车辆售价变更
+        showCostChange(){
+            let val = this.dataForm.showCost
+            this.suffixCost = (val / 10000) + '万'
+            let price = this.carPrice
+            this.suffixPrice = (price / 10000) + '万'
+            let cost = Number(this.dataForm.showCost)
+            console.log(price, cost)
+            let discount = price - cost
+            this.suffixDiscount = (discount / 10000) + '万'
+            this.$set(this.dataForm, 'discount', discount)
         },
         // 推荐变更
         extChange(a){
             this.extCur = [a[0]]
-            // this.$set(this.dataForm, 'carInfo', a[0])
+            this.$set(this.dataForm, 'extension', a[0])
             console.log(this.extCur)
         },
         // 时间变更
         changeTime(a){
             console.log(a)
-            this.$set(this.dataForm, 'activityStartTime', a[0])
-            this.$set(this.dataForm, 'activityEndTime', a[1])
+            // this.$set(this.dataForm, 'activityStartTime', a[0])
+            // this.$set(this.dataForm, 'activityEndTime', a[1])
+        },
+        // 搜索状态变更
+        statuChange(a){
+            this.columnFilters.status.value = a[0]
+        },
+        // 搜索是否启用变更
+        enableChange(a){
+            this.columnFilters.enable.value = a[0]
         },
         // 表单提交
         submitForm(){
-            let a = this.dataForm.specialAttrs.every(i => {
-                return (Boolean(i.key) && Boolean(i.value))
-            })
+            if(this.activityTime[0]){
+                this.$set(this.dataForm, 'activityStartTime', this.activityTime[0])
+                this.$set(this.dataForm, 'activityEndTime', this.activityTime[1])
+            }
+            this.$set(this.dataForm, 'price', this.carPrice)
             this.dataForm.fileBeans = this.fileBeans
             this.dataForm.specialImgs = this.fileList.map(i=>{
                 return {
                     img: i.url
                 }
             })
-            if(!a){
+            this.dataForm.showCost = Number(this.dataForm.showCost)
+            console.log(this.dataForm)
+            let a = this.dataForm.specialAttrs.every(i => {
+                return (Boolean(i.key) && Boolean(i.value))
+            })
+            // 表单验证
+            if(!this.dataForm.name){
+                Message.error('请输入名称!')
+            }else if(!a){
                 Message.error('属性名或属性值不能为空!')
             }else{
-                console.log(this.dataForm)
-                this.$api.specialCar.save(this.dataForm).then(res => {
-                    console.log(res)
-                    this.dialogVisible = false
-                    this.findPage(null)
+                this.$confirm('确认要提交吗？').then(()=>{
+                    this.$api.specialCar.save(this.dataForm).then(res => {
+                        console.log(res)
+                        this.dialogVisible = false
+                        this.findPage(null)
+                    })
                 })
             }
         },
@@ -667,29 +829,35 @@ export default {
         },
         // 显示更多按钮
         showmore(row){
-            clearTimeout(this.moreBtnTime)
-            let top = event.path[0].getBoundingClientRect().bottom + 10
-            let left = event.path[0].getBoundingClientRect().left - 12
-            let box = this.$refs.moreBtn
-            this.showMoreBtn = true
-            box.style.top = top + 'px'
-            box.style.left = left + 'px'
+            clearTimeout(this.moreBtnTime['a' + row.id])
+            event.path.forEach(i=>{
+                if(i.tagName == 'TD')
+                    i.classList.add("showmoreBtn")
+            })
         },
         // 隐藏更多按钮
         hidemore(row){
-            this.moreBtnTime = setTimeout(()=>{
-                this.showMoreBtn = false
-            }, 600)
+            let e = event
+            this.moreBtnTime['a' + row.id] = setTimeout(()=>{
+                e.path.forEach(i=>{
+                if(i.tagName == 'TD')
+                    i.classList.remove("showmoreBtn")
+                })
+            }, 300)
         },
         // 显示更多按钮
-        morebtnEnter(){
-            clearTimeout(this.moreBtnTime)
+        morebtnEnter(row){
+            clearTimeout(this.moreBtnTime['a' + row.id])
         },
         // 隐藏更多按钮
-        morebtnLeave(){
-            this.moreBtnTime = setTimeout(()=>{
-                this.showMoreBtn = false
-            }, 600)
+        morebtnLeave(row){
+            let e = event
+            this.moreBtnTime['a' + row.id] = setTimeout(()=>{
+                e.path.forEach(i=>{
+                if(i.tagName == 'TD')
+                    i.classList.remove("showmoreBtn")
+                })
+            }, 300)
         },
         // 改变选中行
         currentChange(row){
@@ -700,9 +868,21 @@ export default {
             this.addAndEdit = false;
             this.operation = '审核';
             this.$api.specialCar.findById(this.curRow.id).then(res=>{
-                console.log(res)
                 this.showMoreBtn = false
                 this.dataForm = Object.assign({}, res.data)
+                if(res.data.extension){
+                    this.showExtension = res.data.extension.title
+                }else{
+                    this.showExtension = '无'
+                }
+                if(res.data.extension){
+                    this.ext.forEach(i=>{
+                        if(i.title == res.data.extension.title){
+                            this.extCur = [i.name]
+                            this.$set(this.dataForm, 'extension', i.name)
+                        }
+                    })
+                }
             }).then(()=>{
                 this.dialogVisible = true
                 if(this.dataForm.brand && this.dataForm.twoBrand){
@@ -716,21 +896,33 @@ export default {
         auditBrand(){
             let a = this.dataForm
             let oneBrand = this.one.filter(i => i.id == a.brand)
-            return this.$api.car.findTypeByParentId(a.brand).then(res=>{
+            this.$api.car.findTypeByParentId(a.brand).then(res=>{
                 let twoBrand = res.data.filter(i => i.id == a.twoBrand)
                 let oneName = oneBrand[0].name || ''
                 let twoName = twoBrand[0].name || ''
-                this.showBrand = oneName + ' / ' + twoName
+                let threeBrand = twoBrand[0].list.filter(i => i.queryId == a.vehicleType)
+                let threeName = threeBrand[0].fullname
+                this.showBrand = oneName + ' / ' + twoName + ' / ' + threeName
+                return a
+            }).then(a=>{
+                this.$api.car.findCarByParentId(a.vehicleType).then(res=>{
+                    console.log(res.data.list)
+                    let fourBrand = res.data.list.filter(i=>i.queryId == a.carInfo)
+                    console.log(fourBrand)
+                    this.showCarInfo = fourBrand[0].name
+                })
             })
         },
-        // 调用审核
+        // 通过审核
         toAudit(){
             this.$confirm('确认通过审核吗？', '提示').then(()=>{
+                this.$set(this.dataForm, 'status', 'AUDITED')
                 this.$api.specialCar.audit(this.dataForm).then(res=>{
                     console.log(res)
                     if(res.code == 200){
                         this.dialogVisible = false
                         Message.success('操作成功')
+                        this.findPage()
                     }else{
                         Message.error('操作失败')
                     }
@@ -740,11 +932,12 @@ export default {
         // 上架
         upper(){
             console.log(this.curRow.id)
-            this.$confirm('确认通过上架吗？', '提示').then(()=>{
+            this.$confirm('确认上架吗？', '提示').then(()=>{
                 this.$api.specialCar.upper(this.curRow.id).then(res=>{
                     console.log(res)
                     if(res.code == 200){
                         Message.success('操作成功')
+                        this.findPage()
                     }else{
                         Message.error('操作失败')
                     }
@@ -754,11 +947,12 @@ export default {
         // 下架
         lower(){
             console.log(this.curRow.id)
-            this.$confirm('确认通过下架吗？', '提示').then(()=>{
+            this.$confirm('确认下架吗？', '提示').then(()=>{
                 this.$api.specialCar.lower(this.curRow.id).then(res=>{
                     console.log(res)
                     if(res.code == 200){
                         Message.success('操作成功')
+                        this.findPage()
                     }else{
                         Message.error('操作失败')
                     }
@@ -769,11 +963,13 @@ export default {
 	mounted() {
 		this.findPage()
         this.initColumns()
+        // 所有品牌
         this.$api.car.findAll().then(res=>{
             // ++this.oneKey
             console.log(res)
             this.one = res.data
         })
+        // 推广
         this.$api.specialCar.getExtensionEnum().then(res=>{
             console.log(res)
             this.ext = res.data
@@ -891,9 +1087,6 @@ export default {
         .sDetail{
             display: flex;
             justify-content: space-between;
-            div{
-                flex: 1;
-            }
         }
         .showimgs{
             padding: 40px 0;;
@@ -919,6 +1112,12 @@ export default {
 >>> .el-date-editor--daterange.el-input__inner{
     width: 100% ;
 }
+>>> .ql-editor{
+    overflow-y: scroll;
+}
+>>> .ql-editor p{
+    line-height: 1.2 !important;
+}
 .quill-editor >>> .ql-container{
 	height: 400px;
 }
@@ -932,6 +1131,9 @@ export default {
     overflow-y: auto;
 }
 #main >>> td{
-    height: 225px;
+    height: 75px;
+}
+>>> .el-form-item__content{
+    
 }
 </style>
