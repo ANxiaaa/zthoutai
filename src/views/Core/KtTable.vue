@@ -141,7 +141,6 @@ export default {
 		},
 		// 批量删除
 		handleBatchDelete: function () {
-            console.log(1)
 			let ids = this.selections.map(item => item.id).toString()
 			this.delete(ids)
 		},

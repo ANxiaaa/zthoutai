@@ -9,8 +9,14 @@
         </div>
         <div id="main">
             <el-collapse @change="handleChange">
+                <el-collapse-item title="车体颜色">
+                    <p class="showclor" v-for="i in carData.body.color.split('|')" :key="i">
+                        <span>{{i.split(',')[0]}}</span>
+                        <span :style="`width: 1rem;background: ${i.split(',')[1]}`"></span>
+                    </p>
+                </el-collapse-item>
                 <el-collapse-item v-for="(i, index) in field" v-if="i.list" :key="index" :title="i[Object.keys(i)[0]]" :name="index">
-                    <p v-for="(a, index) in i[Object.keys(i)[1]]" :key="index">
+                    <p v-for="(a, index) in i[Object.keys(i)[1]]" :key="index"  v-if="Object.keys(a)[0] != 'color'">
                         <span class="name">{{a[Object.keys(a)]}}</span>
                         <span>{{aaaa(carData[Object.keys(i)[0]],[Object.keys(a)[0]]) || '-'}}</span>
                     </p>
@@ -303,6 +309,12 @@ export default {
 #arcticView{
     height: 1000px;
     text-align: left;
+    .showclor{
+        display: flex;
+        justify-content: space-between;
+        padding-right: 20px;
+        box-sizing: border-box;
+    }
     .car{
         margin-bottom: 30px
     }

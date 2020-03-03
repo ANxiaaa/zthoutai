@@ -1,5 +1,5 @@
 <template>
-    <div class="container">
+    <div class="container" style="height: 100%">
         <!--工具栏-->
         <div id="top">
             <div class="toolbar" style="float:left;padding-top:10px;padding-left:15px;">
@@ -26,10 +26,11 @@
             </div>
             <filter-tool :showexcel="false" :columns="columns" @setColumns="setColumns" @findPage="findPage(null)"></filter-tool>
         </div>
-        <div id="main">
+        <div id="main" style="height: 75%">
             <div id="tab">
                 <el-table id="tab2" :element-loading-text="$t('action.loading')"  v-loading="fansloading" @cell-mouse-enter="currentChange"
-                :data="fansData" height="598">
+                :data="fansData" height="100%" @selection-change="selectionChange">
+                    <el-table-column type="selection" width="50"></el-table-column>
                     <el-table-column v-for="i in filterColumns" :key="i.id" align="center" :show-overflow-tooltip="i.showOverflowTooltip"
                     :prop="i.prop" :label="i.label" :min-width="i.minWidth" :width="i.width">
                     <template slot-scope="scope">
@@ -48,7 +49,7 @@
                             <kt-button icon="fa fa-trash" label="删除" perms="car:special:info:delete" type="danger" @click="handleDelete(scope.row)"/>
                             <ul @mouseenter="morebtnEnter(scope.row)" @mouseleave="morebtnLeave(scope.row)" ref="moreBtn" class="moreBtn">
                                 <li v-if="scope.row.status == 'SHELF'"><kt-button label="审核" perms="car:special:info:audit" @click="handleAudit"/></li>
-                                <li v-if="scope.row.status == 'TO_AUDITED'"><kt-button label="上架" perms="car:special:info:audit" @click="upper"/></li>
+                                <li v-if="scope.row.status == 'TO_AUDITED' || scope.row.status == 'LOWER_SHELF'"><kt-button label="上架" perms="car:special:info:audit" @click="upper"/></li>
                                 <li v-if="scope.row.status == 'AUDITED'"><kt-button label="下架" perms="car:special:info:audit" @click="lower"/></li>
                             </ul>
                         </template>
@@ -56,6 +57,7 @@
                 </el-table>
             </div>
             <div id="fenye">
+                <kt-button :label="$t('action.batchDelete')" perms="car:special:info:delete" :size="size" type="danger" @click="handleBatchDelete()" style="float:left;" v-if="showBatchDelete"/>
                 <!-- 下边分页器 -->
                 <el-pagination layout="prev, pager, next" @current-change="pageCurrentChange" :page-size="pageSize.pageSize" :total="pageSize.totalSize"></el-pagination>
             </div>
@@ -262,7 +264,7 @@ export default {
                 title: '未上架'
             },{
                 name: 'SHELF',
-                title: '未审核'
+                title: '已上架'
             },{
                 name: 'LOWER_SHELF',
                 title: '已下架'
@@ -351,6 +353,7 @@ export default {
             curRow: {},
             dialogVisible: false,
             imgMax: 5,
+            showBatchDelete: false,
             one: [],
             two: [],
             three: [],
@@ -400,7 +403,8 @@ export default {
             suffixPrice: '',
             searchBrand: [],
             statuCur: [],
-            enableCur: []
+            enableCur: [],
+            selections: []
         }
 	},
 	methods: {
@@ -441,7 +445,63 @@ export default {
                 "releaseTime": "",
                 "showCost": 0,
                 "sn": 0,
-                "specialAttrs": [],
+                "specialAttrs": [{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "车体颜色",
+                    "sn": 0,
+                    "value": ""
+                },{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "内饰颜色",
+                    "sn": 0,
+                    "value": ""
+                },{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "是否现车",
+                    "sn": 0,
+                    "value": ""
+                },{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "排放标准",
+                    "sn": 0,
+                    "value": ""
+                },{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "质保情况",
+                    "sn": 0,
+                    "value": ""
+                },{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "车源所在地",
+                    "sn": 0,
+                    "value": ""
+                },{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "提车地点",
+                    "sn": 0,
+                    "value": ""
+                },{
+                    "desc": "",
+                    "id": 0,
+                    "infoId": 0,
+                    "key": "其他说明",
+                    "sn": 0,
+                    "value": ""
+                },],
                 "specialDetail": {
                     "detail": "",
                     "infoId": 0
@@ -472,6 +532,13 @@ export default {
         searchBrandChange(a){
             this.columnFilters.brand.value = a[0]
             console.log(this.columnFilters)
+        },
+        // 选项发生变化
+        selectionChange(cur){
+            console.log(cur)
+            // cur.length > 0?this.showBatchDelete = true:;
+            this.showBatchDelete = cur.length ? true : false
+            this.selections = cur
         },
         // 通用重置
         reshData(){
@@ -717,6 +784,21 @@ export default {
         // 搜索是否启用变更
         enableChange(a){
             this.columnFilters.enable.value = a[0]
+        },
+        // 删除
+        handleBatchDelete(){
+            let ids = this.selections.map(item => item.id)
+            console.log(ids)
+            this.$confirm('确认删除选中记录吗？', '提示', {
+				type: 'warning'
+			}).then(() => {
+                ids.forEach(i=>{
+                    this.$api.specialCar.deleteData(i).then(res=>{
+                        if(res.code == 200)
+                        Message.success('删除成功')
+                    })
+                })
+			})
         },
         // 表单提交
         submitForm(){
